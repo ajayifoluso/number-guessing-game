@@ -1,0 +1,4 @@
+{
+    "appService.defaultWebAppToDeploy": "/subscriptions/2a340df4-a563-4f4b-8af7-b2d54a14ceaa/resourceGroups/guessinggame-dev-rg-eastus/providers/Microsoft.Web/sites/guessinggame-dev-webapp-eastus",
+    "appService.deploySubpath": "GuessingGame"
+}

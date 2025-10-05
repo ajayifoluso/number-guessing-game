@@ -1,0 +1,28 @@
+# Build outputs - DO NOT UPLOAD
+bin/
+obj/
+publish/
+*.dll
+*.exe
+*.pdb
+
+# User-specific files
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Secrets - NEVER upload
+appsettings.Development.json
+appsettings.Production.json
+*.pfx
+*.key
+
+# Zip files
+*.zip
+
+# OS files
+.DS_Store
+Thumbs.db

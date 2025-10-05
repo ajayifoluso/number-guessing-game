@@ -1,0 +1,230 @@
+@{
+    ViewData["Title"] = "Number Guessing Game";
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>@ViewData["Title"]</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .game-container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+        
+        .game-title {
+            color: #2c3e50;
+            font-size: 2rem;
+            margin-bottom: 20px;
+        }
+        
+        .guess-input {
+            font-size: 1.5rem;
+            padding: 10px;
+            border: 2px solid #3498db;
+            border-radius: 5px;
+            text-align: center;
+            width: 100px;
+            margin: 10px;
+        }
+        
+        .guess-btn {
+            font-size: 1.2rem;
+            padding: 12px 24px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        
+        .guess-btn:hover {
+            background: #2980b9;
+        }
+        
+        .feedback {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 5px;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        
+        .success { background: #d4edda; color: #155724; }
+        .warning { background: #fff3cd; color: #856404; }
+        .danger { background: #f8d7da; color: #721c24; }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .stat {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .new-game-btn {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1 class="game-title">Azure Secure Number Guessing Game</h1>
+        <p>I'm thinking of a number between 1 and 100!</p>
+        <p>You have <strong id="maxAttempts">@ViewBag.MaxAttempts</strong> attempts to guess it.</p>
+        
+        <div>
+            <input type="number" id="guessInput" class="guess-input" min="1" max="100" placeholder="?">
+            <button onclick="makeGuess()" class="guess-btn" id="guessBtn">Make Guess</button>
+        </div>
+        
+        <div id="feedback" class="feedback" style="display: none;"></div>
+        
+        <div class="stats">
+            <div class="stat">
+                <strong>Attempts Used:</strong><br>
+                <span id="attemptsUsed">0</span>
+            </div>
+            <div class="stat">
+                <strong>Attempts Left:</strong><br>
+                <span id="attemptsLeft">@ViewBag.MaxAttempts</span>
+            </div>
+            <div class="stat">
+                <strong>Current Score:</strong><br>
+                <span id="currentScore">0</span>
+            </div>
+        </div>
+        
+        <button onclick="startNewGame()" class="new-game-btn" id="newGameBtn" style="display: none;">
+            Start New Game
+        </button>
+        
+        <div style="margin-top: 30px; padding: 15px; background: #e8f5e8; border-radius: 5px;">
+            <strong>Security Status:</strong> Connected to Azure Key Vault ✓
+        </div>
+    </div>
+
+    <script>
+        let gameState = {
+            target: Math.floor(Math.random() * 100) + 1,
+            attempts: 0,
+            maxAttempts: @ViewBag.MaxAttempts,
+            scoreMultiplier: @ViewBag.ScoreMultiplier,
+            gameActive: true
+        };
+
+        function makeGuess() {
+            if (!gameState.gameActive) return;
+            
+            const guess = parseInt(document.getElementById('guessInput').value);
+            if (!guess || guess < 1 || guess > 100) {
+                showFeedback('Please enter a number between 1 and 100!', 'danger');
+                return;
+            }
+            
+            gameState.attempts++;
+            updateStats();
+            
+            fetch('/Game/MakeGuess', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    guess: guess,
+                    target: gameState.target,
+                    attempts: gameState.attempts
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                showFeedback(data.message, data.success ? 'success' : 'warning');
+                
+                if (data.success) {
+                    document.getElementById('currentScore').textContent = data.score;
+                    gameState.gameActive = false;
+                    document.getElementById('guessBtn').disabled = true;
+                    document.getElementById('newGameBtn').style.display = 'block';
+                } else if (gameState.attempts >= gameState.maxAttempts) {
+                    showFeedback(`Game Over! The number was ${gameState.target}`, 'danger');
+                    gameState.gameActive = false;
+                    document.getElementById('guessBtn').disabled = true;
+                    document.getElementById('newGameBtn').style.display = 'block';
+                }
+            });
+            
+            document.getElementById('guessInput').value = '';
+        }
+
+        function showFeedback(message, type) {
+            const feedback = document.getElementById('feedback');
+            feedback.textContent = message;
+            feedback.className = `feedback ${type}`;
+            feedback.style.display = 'block';
+        }
+
+        function updateStats() {
+            document.getElementById('attemptsUsed').textContent = gameState.attempts;
+            document.getElementById('attemptsLeft').textContent = gameState.maxAttempts - gameState.attempts;
+            
+            if (gameState.gameActive) {
+                const score = (gameState.maxAttempts - gameState.attempts + 1) * gameState.scoreMultiplier;
+                document.getElementById('currentScore').textContent = score;
+            }
+        }
+
+        function startNewGame() {
+            gameState = {
+                target: Math.floor(Math.random() * 100) + 1,
+                attempts: 0,
+                maxAttempts: @ViewBag.MaxAttempts,
+                scoreMultiplier: @ViewBag.ScoreMultiplier,
+                gameActive: true
+            };
+            
+            document.getElementById('guessBtn').disabled = false;
+            document.getElementById('newGameBtn').style.display = 'none';
+            document.getElementById('feedback').style.display = 'none';
+            document.getElementById('guessInput').focus();
+            updateStats();
+            document.getElementById('currentScore').textContent = '0';
+        }
+
+        // Allow Enter key to submit guess
+        document.getElementById('guessInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                makeGuess();
+            }
+        });
+
+        // Initialize
+        document.getElementById('guessInput').focus();
+    </script>
+</body>
+</html>
